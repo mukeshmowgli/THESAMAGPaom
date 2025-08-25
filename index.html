@@ -1,0 +1,583 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive AOM Clinical Guide for Australian GPs</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: "Calm Neutral" - A palette of warm neutrals (bg-stone-50), soft blues (bg-sky-100, border-sky-500), and gentle greys (text-slate-700) with a subtle amber accent (bg-amber-400) for key actions. This creates a professional, calm, and focused clinical environment. -->
+    <!-- Application Structure Plan: The SPA is structured as a task-oriented clinical workflow tool. The 'Manage' section's algorithm has been updated to reflect detailed eTG antibiotic regimens, including alternative dosing for adherence and specific pathways for penicillin hypersensitivity. This makes the tool a more comprehensive prescribing reference. -->
+    <!-- Visualization & Content Choices: 1. AOM vs OME vs AOE Comparison: Interactive HTML table. 2. Antibiotic Prescribing Logic: The dynamic algorithm's output is significantly updated. The JS 'recommendations' object now contains more detailed strings for first-line, second-line, and new penicillin allergy alternative treatments. The JS rendering function now displays these new, more complex recommendations, including specific doses and durations as per the latest eTG guidance. 3. Patient Decision Aid Visuals: HTML/CSS/JS pictograms. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* slate-50 */
+        }
+        .nav-link {
+            transition: all 0.2s ease-in-out;
+        }
+        .nav-link.active {
+            border-bottom-color: #0ea5e9; /* sky-500 */
+            color: #0c4a6e; /* sky-900 */
+            font-weight: 600;
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+        }
+        .risk-factor-btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .risk-factor-btn.selected {
+            background-color: #0ea5e9; /* sky-500 */
+            color: white;
+            border-color: #0ea5e9; /* sky-500 */
+        }
+        .red-flag-card {
+            box-shadow: 0 0 15px rgba(239, 68, 68, 0.2);
+        }
+        .pictogram-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 4px;
+        }
+        .pictogram-circle {
+            width: 100%;
+            padding-bottom: 100%;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="min-h-screen flex flex-col">
+        <header class="bg-white shadow-sm sticky top-0 z-10">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex justify-between items-center py-4">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 bg-sky-500 rounded-full flex items-center justify-center text-white text-xl font-bold">
+                            <span>+</span>
+                        </div>
+                        <h1 class="text-2xl font-bold text-slate-800">AOM Clinical Guide</h1>
+                    </div>
+                    <nav class="hidden md:flex space-x-6">
+                        <a href="#home" class="nav-link text-slate-600 hover:text-sky-600 border-b-2 border-transparent pb-1" data-target="home">Home</a>
+                        <a href="#diagnose" class="nav-link text-slate-600 hover:text-sky-600 border-b-2 border-transparent pb-1" data-target="diagnose">Diagnose</a>
+                        <a href="#manage" class="nav-link text-slate-600 hover:text-sky-600 border-b-2 border-transparent pb-1" data-target="manage">Manage</a>
+                        <a href="#prevent" class="nav-link text-slate-600 hover:text-sky-600 border-b-2 border-transparent pb-1" data-target="prevent">Prevent & Recurrence</a>
+                    </nav>
+                </div>
+            </div>
+        </header>
+
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex-grow">
+
+            <!-- Home Section -->
+            <section id="home" class="content-section active">
+                <div class="bg-white p-8 rounded-lg shadow-md border border-slate-200">
+                    <h2 class="text-3xl font-bold text-slate-900 mb-4">Expert AOM Management in Australian General Practice</h2>
+                    <p class="text-lg text-slate-600 mb-6">This interactive tool translates the 2024 Australian AOM Clinical Monograph into a practical, point-of-care resource. It is designed to help you make rapid, evidence-based decisions for diagnosing and managing Acute Otitis Media in line with RACGP and Therapeutic Guidelines.</p>
+                    <div class="grid md:grid-cols-3 gap-6">
+                        <div class="bg-sky-50 p-6 rounded-lg border border-sky-200 hover:shadow-lg transition-shadow">
+                            <h3 class="text-xl font-semibold text-sky-800 mb-2">Diagnose with Confidence</h3>
+                            <p class="text-slate-600 mb-4">Use the interactive checklist and differential diagnosis comparator to ensure accurate AOM diagnosis and avoid common pitfalls.</p>
+                            <button onclick="navigateTo('diagnose')" class="w-full bg-sky-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-sky-600 transition-colors">Go to Diagnosis</button>
+                        </div>
+                        <div class="bg-amber-50 p-6 rounded-lg border border-amber-200 hover:shadow-lg transition-shadow">
+                            <h3 class="text-xl font-semibold text-amber-800 mb-2">Tailor Treatment Plans</h3>
+                            <p class="text-slate-600 mb-4">Access the dynamic management algorithm and integrated patient decision aid to generate guideline-adherent treatment plans.</p>
+                             <button onclick="navigateTo('manage')" class="w-full bg-amber-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-amber-600 transition-colors">Go to Management</button>
+                        </div>
+                        <div class="bg-emerald-50 p-6 rounded-lg border border-emerald-200 hover:shadow-lg transition-shadow">
+                            <h3 class="text-xl font-semibold text-emerald-800 mb-2">Prevent Recurrence</h3>
+                            <p class="text-slate-600 mb-4">Quickly review high-impact, modifiable risk factors and preventive strategies for effective patient counselling.</p>
+                             <button onclick="navigateTo('prevent')" class="w-full bg-emerald-500 text-white font-semibold py-2 px-4 rounded-md hover:bg-emerald-600 transition-colors">Go to Prevention</button>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Diagnose Section -->
+            <section id="diagnose" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-6">Diagnostic Masterclass</h2>
+                <p class="text-lg text-slate-600 mb-8">Accurate diagnosis is the cornerstone of effective AOM management. A definitive diagnosis requires evidence of both middle ear effusion (MEE) and acute inflammation. Use the tools below to confirm your diagnosis.</p>
+
+                <div class="grid lg:grid-cols-2 gap-8">
+                    <!-- Diagnostic Criteria -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-2xl font-semibold text-slate-800 mb-4">AOM Diagnostic Checklist</h3>
+                        <p class="mb-4 text-slate-600">Confirm the presence of at least one sign from each category for a definitive diagnosis.</p>
+                        <div class="space-y-4">
+                            <div>
+                                <h4 class="font-semibold text-lg text-sky-700">1. Middle Ear Effusion (MEE)</h4>
+                                <ul class="list-disc list-inside mt-2 space-y-1 text-slate-600">
+                                    <li><span class="font-bold">Bulging Tympanic Membrane:</span> The single most specific sign.</li>
+                                    <li>Opaque TM with loss of landmarks.</li>
+                                    <li>Air-fluid level or bubbles behind TM.</li>
+                                    <li>New onset of otorrhoea (not from AOE).</li>
+                                    <li>Reduced/absent mobility on pneumatic otoscopy.</li>
+                                </ul>
+                            </div>
+                            <div>
+                                <h4 class="font-semibold text-lg text-sky-700">2. Acute Middle Ear Inflammation</h4>
+                                <ul class="list-disc list-inside mt-2 space-y-1 text-slate-600">
+                                     <li><span class="font-bold">Moderate to severe otalgia:</span> Cardinal symptom, especially with recent onset (<48h).</li>
+                                    <li>Distinct erythema of the TM (Note: a non-specific sign alone).</li>
+                                    <li>In pre-verbal children: unexplained irritability, ear pulling, poor feeding.</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Differential Diagnosis -->
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                         <h3 class="text-2xl font-semibold text-slate-800 mb-4">Differential Diagnosis Comparator</h3>
+                         <p class="mb-4 text-slate-600">Compare the key features of AOM, Otitis Media with Effusion (OME), and Acute Otitis Externa (AOE) to avoid common diagnostic errors.</p>
+                         <div class="overflow-x-auto">
+                            <table class="w-full text-left border-collapse">
+                                <thead>
+                                    <tr>
+                                        <th class="py-2 px-3 bg-slate-100 font-semibold text-sm text-slate-600 border-b-2 border-slate-200">Feature</th>
+                                        <th class="py-2 px-3 bg-slate-100 font-semibold text-sm text-slate-600 border-b-2 border-slate-200">AOM</th>
+                                        <th class="py-2 px-3 bg-slate-100 font-semibold text-sm text-slate-600 border-b-2 border-slate-200">OME ("Glue Ear")</th>
+                                        <th class="py-2 px-3 bg-slate-100 font-semibold text-sm text-slate-600 border-b-2 border-slate-200">AOE ("Swimmer's Ear")</th>
+                                    </tr>
+                                </thead>
+                                <tbody class="text-slate-700">
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-3 border-b border-slate-200 font-semibold">Key Symptom</td>
+                                        <td class="py-3 px-3 border-b border-slate-200 bg-sky-50">Moderate-severe otalgia</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Muffled hearing</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Severe otalgia, itching</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-3 border-b border-slate-200 font-semibold">TM Appearance</td>
+                                        <td class="py-3 px-3 border-b border-slate-200 bg-sky-50">Bulging, opaque</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Retracted or neutral, dull</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Obscured by canal swelling</td>
+                                    </tr>
+                                    <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-3 border-b border-slate-200 font-semibold">Key Sign</td>
+                                        <td class="py-3 px-3 border-b border-slate-200 bg-sky-50">Preceding URTI</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Effusion without inflammation</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Pain on tragal pressure</td>
+                                    </tr>
+                                     <tr class="hover:bg-slate-50">
+                                        <td class="py-3 px-3 border-b border-slate-200 font-semibold">TM Mobility</td>
+                                        <td class="py-3 px-3 border-b border-slate-200 bg-sky-50">Reduced / Absent</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Reduced / Absent</td>
+                                        <td class="py-3 px-3 border-b border-slate-200">Normal (if visible)</td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                         </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Manage Section -->
+            <section id="manage" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">Management Algorithm</h2>
+                <p class="text-lg text-slate-600 mb-8">Generate a guideline-adherent management plan. Start by providing adequate analgesia, then use the selector below to determine the appropriate antibiotic strategy.</p>
+
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 mb-8">
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-3">Priority #1: Analgesia</h3>
+                    <p class="text-slate-600">The mainstay of AOM management is adequate and regular oral analgesia. This is the first-line intervention for every child. Advise parents to use age- and weight-appropriate doses of Paracetamol (15 mg/kg/dose) or Ibuprofen (10 mg/kg/dose).</p>
+                </div>
+
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 mb-8">
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-4">GP Antibiotic Strategy Selector</h3>
+                    <p class="mb-6 text-slate-600">Select all applicable patient risk factors to reveal the recommended management pathway. For children without clear high-risk factors, clinical judgement is key, especially for those aged 2 years or younger.</p>
+                    
+                    <div id="risk-factor-selector" class="flex flex-wrap gap-4 mb-6">
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="otorrhoea">Otorrhoea Present</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="indigenous">Aboriginal or Torres Strait Islander</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="under6m">Age < 6 months</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="under2yBilateral">Age 6m to < 2y with Bilateral AOM</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="unwell">Systemically Unwell</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="cochlear">Cochlear Implant</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="immune">Immune Compromise</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="craniofacial">Craniofacial Abnormalities</button>
+                        <button class="risk-factor-btn border-2 border-slate-300 rounded-full px-4 py-2 text-slate-700 font-medium" data-risk="remote">Remote Community (>4% CSOM)</button>
+                    </div>
+
+                    <div id="management-recommendation" class="mt-6">
+                        <!-- Initial state message -->
+                        <div id="initial-message" class="text-center p-6 bg-slate-50 rounded-lg">
+                            <p class="text-slate-600 font-medium">Select patient factors above to see the recommendation.</p>
+                        </div>
+                        <!-- Recommendation will be dynamically inserted here -->
+                    </div>
+                </div>
+
+                <!-- Shared Decision-Making Tool -->
+                <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200 mb-8">
+                    <h3 class="text-2xl font-semibold text-slate-800 mb-4">Shared Decision-Making Tool (for Patients & Carers)</h3>
+                    <p class="mb-6 text-slate-600">Use this tool to discuss the likely benefits and harms of antibiotics for a middle ear infection with parents and carers, based on the ACSQHC Decision Aid.</p>
+                    
+                    <div class="border-t border-slate-200 pt-6">
+                        <h4 class="text-xl font-semibold text-slate-700 mb-3">How long does the earache last?</h4>
+                        <p class="text-slate-600 mb-4">On average, children who take antibiotics have earache for only about <span class="font-bold text-sky-600">12 hours less</span> than children who do not.</p>
+                        <div class="space-y-3 text-sm">
+                            <div class="flex items-center">
+                                <span class="w-28 font-semibold text-slate-600">WITH antibiotics:</span>
+                                <div class="flex-1 bg-red-400 h-6 rounded-l-md flex items-center justify-center text-white font-bold">72 hours (3 days)</div>
+                                <div class="w-[14.28%] bg-sky-400 h-6 rounded-r-md flex items-center justify-center text-white font-bold">12h less</div>
+                            </div>
+                            <div class="flex items-center">
+                                <span class="w-28 font-semibold text-slate-600">WITHOUT antibiotics:</span>
+                                <div class="flex-1 bg-red-400 h-6 rounded-md flex items-center justify-center text-white font-bold">84 hours (3.5 days)</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 mt-8 pt-6 grid md:grid-cols-2 gap-8">
+                        <div>
+                            <h4 class="text-xl font-semibold text-slate-700 mb-3">Possible Benefits</h4>
+                            <p class="text-slate-600 mb-4">Out of 100 children, antibiotics help about <span class="font-bold text-emerald-600">5 extra children</span> get better by day 2-3.</p>
+                            <div class="flex items-start gap-4">
+                                <div class="w-1/2">
+                                    <p class="font-semibold text-center mb-2">100 children who <span class="font-bold">DO NOT</span> take antibiotics</p>
+                                    <div id="benefits-no-abx" class="pictogram-grid p-2 bg-slate-100 rounded-md"></div>
+                                </div>
+                                <div class="w-1/2">
+                                    <p class="font-semibold text-center mb-2">100 children who <span class="font-bold">DO</span> take antibiotics</p>
+                                    <div id="benefits-abx" class="pictogram-grid p-2 bg-slate-100 rounded-md"></div>
+                                </div>
+                            </div>
+                            <div class="flex justify-around mt-2 text-xs font-medium">
+                                <span><span class="inline-block w-3 h-3 rounded-full bg-emerald-400 mr-1"></span>Better by day 2-3</span>
+                                <span><span class="inline-block w-3 h-3 rounded-full bg-slate-300 mr-1"></span>Not better</span>
+                            </div>
+                        </div>
+                         <div>
+                            <h4 class="text-xl font-semibold text-slate-700 mb-3">Possible Harms</h4>
+                            <p class="text-slate-600 mb-4">Out of 100 children, about <span class="font-bold text-red-600">7 extra children</span> will have problems like vomiting, diarrhoea or a rash due to antibiotics.</p>
+                             <div class="flex items-start gap-4">
+                                <div class="w-1/2">
+                                    <p class="font-semibold text-center mb-2">100 children who <span class="font-bold">DO NOT</span> take antibiotics</p>
+                                    <div id="harms-no-abx" class="pictogram-grid p-2 bg-slate-100 rounded-md"></div>
+                                </div>
+                                <div class="w-1/2">
+                                    <p class="font-semibold text-center mb-2">100 children who <span class="font-bold">DO</span> take antibiotics</p>
+                                    <div id="harms-abx" class="pictogram-grid p-2 bg-slate-100 rounded-md"></div>
+                                </div>
+                            </div>
+                             <div class="flex justify-around mt-2 text-xs font-medium">
+                                <span><span class="inline-block w-3 h-3 rounded-full bg-red-400 mr-1"></span>Has problems</span>
+                                <span><span class="inline-block w-3 h-3 rounded-full bg-slate-300 mr-1"></span>No problems</span>
+                            </div>
+                        </div>
+                    </div>
+                     <div class="border-t border-slate-200 mt-8 pt-6">
+                        <h4 class="text-xl font-semibold text-slate-700 mb-3">Questions for our discussion</h4>
+                        <ul class="space-y-2 text-slate-600 list-disc list-inside">
+                            <li>What happens if my child does not take antibiotics?</li>
+                            <li>Do I know enough about the benefits and harms of each option?</li>
+                            <li>Am I clear about which benefits and harms matter most to me and my child?</li>
+                        </ul>
+                    </div>
+                </div>
+                
+                <div class="mt-8 bg-red-50 border-l-4 border-red-500 p-6 rounded-r-lg red-flag-card">
+                    <h3 class="text-2xl font-semibold text-red-800 mb-3">Red Flags: When to Seek Urgent Help</h3>
+                    <p class="text-red-700 mb-4">The presence of any of the following signs suggests a serious complication and mandates urgent referral to an Emergency Department or ENT specialist.</p>
+                    <ul class="grid md:grid-cols-2 gap-x-8 gap-y-2 text-red-900 font-medium">
+                        <li>Swelling, redness, or pain behind the ear</li>
+                        <li>Facial nerve palsy (new onset face droop)</li>
+                        <li>Severe vertigo, dizziness or nystagmus</li>
+                        <li>Signs of meningism (stiff neck, light sensitivity)</li>
+                        <li>Very drowsy, altered conscious state, or inconsolable</li>
+                        <li>Focal neurological signs (e.g. new weakness)</li>
+                        <li>High fever (>38.5°C) that doesn't improve</li>
+                        <li>Cold or discoloured hands/feet with a warm body</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Prevent Section -->
+            <section id="prevent" class="content-section">
+                <h2 class="text-3xl font-bold text-slate-900 mb-2">Prevention & Recurrent AOM</h2>
+                <p class="text-lg text-slate-600 mb-8">For families burdened by recurrent AOM (≥3 episodes in 6 months or ≥4 in 12 months), counselling on high-impact, modifiable risk factors is the most effective preventive strategy in primary care.</p>
+
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">🚭 Avoid Passive Smoke</h3>
+                        <p class="text-slate-600">Strong evidence links environmental tobacco smoke exposure to an increased risk of AOM. This is a critical public health message for carers.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">🤱 Promote Breastfeeding</h3>
+                        <p class="text-slate-600">Exclusive breastfeeding for at least the first six months of life has a protective effect against the development of early AOM.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">🍼 Limit Pacifier Use</h3>
+                        <p class="text-slate-600">Advise limiting pacifier (dummy) use, particularly after 6-12 months of age, as it is associated with an increased risk of AOM.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">💉 Ensure Vaccinations</h3>
+                        <p class="text-slate-600">Ensure the child is up-to-date with the National Immunisation Program schedule, including Pneumococcal (PCV) and annual Influenza vaccines.</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">🤝 Specialist Referral</h3>
+                        <p class="text-slate-600">Consider ENT referral for children with debilitating rAOM for consideration of tympanostomy tubes (grommets).</p>
+                    </div>
+                    <div class="bg-white p-6 rounded-lg shadow-md border border-slate-200">
+                        <h3 class="text-xl font-semibold text-slate-800 mb-3">💊 Prophylactic Antibiotics</h3>
+                        <p class="text-slate-600">Generally not recommended for most children due to resistance risks. Primarily reserved for high-risk populations (e.g., Aboriginal/TSI children) under specialist guidance.</p>
+                    </div>
+                </div>
+            </section>
+
+        </main>
+        <footer class="bg-white mt-8 py-4 border-t border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-sm text-slate-500">
+                <p>Created by The Sama GP, using Australian Therapeutic Guidelines.</p>
+            </div>
+        </footer>
+    </div>
+
+    <script>
+        const navLinks = document.querySelectorAll('.nav-link');
+        const contentSections = document.querySelectorAll('.content-section');
+
+        function navigateTo(targetId) {
+            contentSections.forEach(section => {
+                section.classList.remove('active');
+                if (section.id === targetId) {
+                    section.classList.add('active');
+                }
+            });
+
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+                if (link.dataset.target === targetId) {
+                    link.classList.add('active');
+                }
+            });
+            window.scrollTo(0, 0);
+        }
+
+        navLinks.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                const targetId = e.target.dataset.target;
+                navigateTo(targetId);
+                history.pushState(null, '', `#${targetId}`);
+            });
+        });
+
+        window.addEventListener('popstate', () => {
+            const targetId = window.location.hash.substring(1) || 'home';
+            navigateTo(targetId);
+        });
+
+        const riskFactorButtons = document.querySelectorAll('.risk-factor-btn');
+        const recommendationContainer = document.getElementById('management-recommendation');
+        const initialMessage = document.getElementById('initial-message');
+        
+        const recommendations = {
+            lowRisk: {
+                title: "Low Risk: 'Watchful Waiting' / Delayed Script Strategy Recommended",
+                strategy: "For children ≥6 months who are not systemically unwell and do not have high-risk factors, a strategy of active observation is recommended.",
+                steps: [
+                    "<strong>1. Prioritise Analgesia:</strong> Advise regular Paracetamol or Ibuprofen.",
+                    "<strong>2. Provide a Clear Safety Net:</strong> Instruct carers to return if symptoms worsen or do not improve within 48-72 hours.",
+                    "<strong>3. Consider a Delayed Script:</strong> Provide a prescription to be filled only if the child does not improve after the observation period."
+                ],
+                antibiotics: {
+                    firstLine: "<strong>If required after 48-72h, use Amoxicillin:</strong><br>• Standard: 15 mg/kg (up to 500mg) orally, 8-hourly for 5 days.<br>• Adherence concern: 30 mg/kg (up to 1g) orally, 12-hourly for 5 days.",
+                    secondLine: "<strong>No response after 48-72h (likely β-lactamase producer):</strong><br>• Child ≥2 months: Amoxicillin+clavulanate 22.5+3.2 mg/kg (up to 875+125mg) orally, 12-hourly for 5-7 days.<br>• Child 1 to <2 months: Amoxicillin+clavulanate 15+3.75 mg/kg orally, 8-hourly for 5-7 days.",
+                    penicillinAllergy: {
+                        nonSevere: "<strong>Non-severe allergy: Cefuroxime</strong> (child ≥3 months) 15 mg/kg (up to 500mg) orally, 12-hourly for 5 days.",
+                        severe: "<strong>Severe allergy: Trimethoprim+sulfamethoxazole</strong> (child ≥1 month) 4+20 mg/kg (up to 160+800mg) orally, 12-hourly for 5 days."
+                    }
+                },
+                clinicalJudgementNote: "<strong>eTG Clinical Judgement Note (Children ≤2 years):</strong> For this age group, while pain relief alone is appropriate, initial antibiotic therapy may be reasonable depending on the clinical context and likelihood of follow-up. Please apply clinical judgement."
+            },
+            highRisk: {
+                title: "High Risk: Immediate Antibiotic Therapy Recommended",
+                strategy: "This patient belongs to a group where the benefits of antibiotics outweigh the risks. 'Watchful waiting' is not recommended.",
+                steps: [
+                    "<strong>1. Prescribe Antibiotics Immediately.</strong>",
+                    "<strong>2. Continue Regular Analgesia:</strong> Pain relief remains a priority.",
+                    "<strong>3. Advise Review if Not Improving:</strong> Instruct carers to return if the child's condition does not improve within 48-72 hours on antibiotics."
+                ],
+                antibiotics: {
+                    firstLine: "<strong>First-Line Amoxicillin:</strong><br>• Standard: 15 mg/kg (up to 500mg) orally, 8-hourly for 7-10 days.<br>• Adherence concern: 30 mg/kg (up to 1g) orally, 12-hourly for 7-10 days.",
+                    secondLine: "<strong>No response after 48-72h (likely β-lactamase producer):</strong><br>• Child ≥2 months: Amoxicillin+clavulanate 22.5+3.2 mg/kg (up to 875+125mg) orally, 12-hourly for 5-7 days.<br>• Child 1 to <2 months: Amoxicillin+clavulanate 15+3.75 mg/kg orally, 8-hourly for 5-7 days.",
+                    penicillinAllergy: {
+                        nonSevere: "<strong>Non-severe allergy: Cefuroxime</strong> (child ≥3 months) 15 mg/kg (up to 500mg) orally, 12-hourly for 5 days.",
+                        severe: "<strong>Severe allergy: Trimethoprim+sulfamethoxazole</strong> (child ≥1 month) 4+20 mg/kg (up to 160+800mg) orally, 12-hourly for 5 days."
+                    }
+                },
+                neonateNote: "<strong>Note for Neonates (<1 month):</strong> Seek expert paediatric advice for antibiotic management in this age group."
+            },
+            otorrhoea: {
+                title: "AOM with Otorrhoea: Dual Therapy Recommended",
+                strategy: "The presence of a TM perforation requires both systemic and topical treatment.",
+                 steps: [
+                    "<strong>1. Prescribe Oral Antibiotics.</strong>",
+                    "<strong>2. Prescribe Topical Drops:</strong> Use a non-ototoxic quinolone.",
+                    "<strong>3. Advise on Aural Toilet:</strong> Gentle cleaning of the ear canal to remove debris.",
+                    "<strong>4. Schedule Follow-up:</strong> Review in 6 weeks to ensure TM perforation has healed."
+                ],
+                antibiotics: {
+                    firstLine: "<strong>Oral: Amoxicillin</strong> 30 mg/kg (max 1g) TDS for 14 days.<br><strong>Topical: Ciprofloxacin/steroid ear drops</strong>.",
+                    secondLine: "<strong>No response after 48-72h:</strong> Switch oral to Amoxicillin+clavulanate and consider swab for M/C/S.",
+                     penicillinAllergy: {
+                        nonSevere: "<strong>Non-severe allergy: Cefuroxime</strong> (child ≥3 months) 15 mg/kg (up to 500mg) orally, 12-hourly for 14 days.",
+                        severe: "<strong>Severe allergy: Trimethoprim+sulfamethoxazole</strong> (child ≥1 month) 4+20 mg/kg (up to 160+800mg) orally, 12-hourly for 14 days."
+                    }
+                }
+            },
+            indigenous: {
+                title: "Aboriginal or Torres Strait Islander Child: Immediate & Enhanced Therapy Recommended",
+                strategy: "Due to the high risk of progression to chronic disease, a more aggressive approach is mandated. 'Watchful waiting' is contraindicated. Always refer to the full 'Otitis Media Guidelines for Aboriginal and Torres Strait Islander Children'.",
+                 steps: [
+                    "<strong>1. Prescribe Antibiotics Immediately for ALL cases of AOM.</strong>",
+                    "<strong>2. Ensure Regular Analgesia.</strong>",
+                    "<strong>3. Emphasise Follow-up:</strong> Regular ear health checks are critical.",
+                ],
+                antibiotics: {
+                    firstLine: "<strong>First-Line: Amoxicillin</strong> 50 mg/kg/day in divided doses. Duration: 7 days (no perforation) or 14 days (with perforation).",
+                    secondLine: "<strong>Persistent AOM (>7d):</strong> Increase amoxicillin dose to 90 mg/kg/day. If unresolved, switch to <strong>Amoxicillin-clavulanate</strong>.",
+                     penicillinAllergy: {
+                        nonSevere: "<strong>Non-severe allergy: Cefuroxime</strong>.",
+                        severe: "<strong>Severe allergy: Trimethoprim+sulfamethoxazole</strong>."
+                    }
+                }
+            }
+        };
+
+        function updateRecommendation() {
+            const selectedRisks = Array.from(riskFactorButtons)
+                .filter(btn => btn.classList.contains('selected'))
+                .map(btn => btn.dataset.risk);
+
+            initialMessage.style.display = 'none';
+            recommendationContainer.innerHTML = '';
+
+            let recommendationKey;
+
+            if (selectedRisks.includes('indigenous') || selectedRisks.includes('remote')) {
+                recommendationKey = 'indigenous';
+            } else if (selectedRisks.includes('otorrhoea')) {
+                recommendationKey = 'otorrhoea';
+            } else if (selectedRisks.length > 0) {
+                recommendationKey = 'highRisk';
+            } else {
+                recommendationKey = 'lowRisk';
+            }
+            
+            if (!recommendationKey) {
+                 initialMessage.style.display = 'block';
+                 return;
+            }
+
+            const rec = recommendations[recommendationKey];
+            
+            let clinicalNoteHTML = '';
+            if (recommendationKey === 'lowRisk' && rec.clinicalJudgementNote) {
+                clinicalNoteHTML = `<div class="mt-4 p-3 bg-amber-50 border-l-4 border-amber-400 text-amber-800 text-sm rounded-r-md">
+                                <p>${rec.clinicalJudgementNote}</p>
+                            </div>`;
+            } else if (recommendationKey === 'highRisk' && selectedRisks.includes('under6m') && rec.neonateNote) {
+                 clinicalNoteHTML = `<div class="mt-4 p-3 bg-amber-50 border-l-4 border-amber-400 text-amber-800 text-sm rounded-r-md">
+                                <p>${rec.neonateNote}</p>
+                            </div>`;
+            }
+
+            const allergyHTML = `
+                <div class="mt-4 border-t border-slate-200 pt-3">
+                    <h5 class="font-semibold text-slate-800 mb-2">For Penicillin Hypersensitivity:</h5>
+                    <div class="space-y-2 text-slate-600">
+                        <p>${rec.antibiotics.penicillinAllergy.nonSevere}</p>
+                        <p>${rec.antibiotics.penicillinAllergy.severe}</p>
+                    </div>
+                </div>
+            `;
+
+            const recommendationHTML = `
+                <div class="p-6 rounded-lg bg-sky-50 border border-sky-200 animate-fade-in">
+                    <h4 class="text-xl font-bold text-sky-800 mb-2">${rec.title}</h4>
+                    <p class="text-slate-700 mb-4">${rec.strategy}</p>
+                    <div class="mb-4">
+                        <h5 class="font-semibold text-slate-800 mb-2">Action Plan:</h5>
+                        <ul class="space-y-2 text-slate-600">${rec.steps.map(step => `<li>${step}</li>`).join('')}</ul>
+                    </div>
+                    <div>
+                        <h5 class="font-semibold text-slate-800 mb-2">Antibiotic Choice:</h5>
+                        <div class="space-y-2 text-slate-600">
+                            <p>${rec.antibiotics.firstLine}</p>
+                            <p>${rec.antibiotics.secondLine}</p>
+                        </div>
+                    </div>
+                    ${rec.antibiotics.penicillinAllergy ? allergyHTML : ''}
+                    ${clinicalNoteHTML}
+                </div>
+            `;
+            recommendationContainer.innerHTML = recommendationHTML;
+        }
+
+        riskFactorButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                button.classList.toggle('selected');
+                updateRecommendation();
+            });
+        });
+        
+        // Function to generate pictograms
+        function generatePictogram(containerId, positiveCount, positiveColor, negativeCount, negativeColor) {
+            const container = document.getElementById(containerId);
+            if (!container) return;
+            container.innerHTML = '';
+            for (let i = 0; i < positiveCount; i++) {
+                const circle = document.createElement('div');
+                circle.className = `pictogram-circle ${positiveColor}`;
+                container.appendChild(circle);
+            }
+            for (let i = 0; i < negativeCount; i++) {
+                const circle = document.createElement('div');
+                circle.className = `pictogram-circle ${negativeColor}`;
+                container.appendChild(circle);
+            }
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const initialTarget = window.location.hash.substring(1) || 'home';
+            navigateTo(initialTarget);
+            updateRecommendation();
+
+            // Generate pictograms on load
+            generatePictogram('benefits-no-abx', 84, 'bg-emerald-400', 16, 'bg-slate-300');
+            generatePictogram('benefits-abx', 89, 'bg-emerald-400', 11, 'bg-slate-300');
+            generatePictogram('harms-no-abx', 20, 'bg-red-400', 80, 'bg-slate-300');
+            generatePictogram('harms-abx', 27, 'bg-red-400', 73, 'bg-slate-300');
+        });
+
+    </script>
+    <style>
+        @keyframes fade-in {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .animate-fade-in {
+            animation: fade-in 0.5s ease-out forwards;
+        }
+    </style>
+</body>
+</html>
